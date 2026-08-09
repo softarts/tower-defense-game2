@@ -1,0 +1,104 @@
+---
+inclusion: always
+---
+# Cocos MCP First Development Rules
+
+This project uses Cocos Creator 3.8.8. The following rules are mandatory for all AI-assisted Cocos development in this workspace.
+
+## BEFORE ANY COCOS WORK
+
+Before starting any task that involves Cocos Creator scenes, nodes, components, or assets:
+1. Read `cocos-ai-best-practices/mcp-first-uuid-integrity.md`
+2. Read `cocos-ai-best-practices/development-workflow.md`
+3. Follow the rules below strictly
+
+## Rule 1: MCP First
+
+All Scene structural operations MUST use Cocos MCP tools when available. AI must operate the Cocos Editor through MCP, not treat `.scene`/`.prefab` files as editable JSON.
+
+MCP-required operations: Open/Close/Save Scene, Create/Delete/Rename Node, Add/Remove Component, Attach/Detach Script, Set Component Property, Set Transform, Set Asset Reference, Query Scene/Node/Component.
+
+## Rule 2: Never Generate Cocos UUIDs
+
+AI must NEVER create, guess, compute, or hardcode:
+- Node UUIDs
+- Component UUIDs (CID)
+- Script Asset UUIDs
+- Asset UUIDs
+- SpriteFrame UUIDs
+- Compressed `__type__` values
+- `.meta` file UUIDs
+
+UUIDs must always come from Cocos Editor or MCP query results.
+
+## Rule 3: Never Directly Edit .scene or .prefab
+
+These are Cocos serialized assets with internal `__id__` and UUID cross-references. Direct editing WILL corrupt references. This includes:
+- Creating nodes by writing JSON
+- Attaching scripts by writing `__type__` values
+- Setting asset references by writing `__uuid__` values
+- Modifying `__id__` reference arrays
+
+## Rule 4: Never Generate .meta Files
+
+Let Cocos Editor create `.meta` files on first import. AI-generated `.meta` files risk:
+- UUID format issues (variant bits)
+- Database inconsistencies
+- Asset import failures
+
+## Rule 5: Script Attachment via MCP Only
+
+The `__type__` field uses UUID compression with standard base64 (NOT base64url). The `+` vs `-` difference causes "Missing class" errors that are extremely hard to diagnose. Always use `node_script_management` MCP tool.
+
+## Rule 6: Full Verification Loop
+
+Every structural scene change must follow:
+```
+Query -> Mutate via MCP -> Query -> Save -> Close -> Reopen -> Query -> Validate -> Preview
+```
+Never assume MCP "success" means the change is correct and persistent.
+
+## Rule 7: Game Data vs Cocos UUID Separation
+
+- Game logic JSON uses human-readable IDs: `"id": "A8"`
+- Never store Cocos UUIDs in game data
+- Runtime TypeScript uses `@property(Node)` or `getChildByName()`, never `getNodeByUuid()`
+
+## Rule 8: When MCP is Unavailable
+
+Only create:
+- TypeScript scripts (`.ts` files)
+- Game data JSON files
+- Configuration files
+
+Do NOT create:
+- `.scene` files
+- `.prefab` files
+- `.meta` files
+
+Defer scene assembly to when MCP is available.
+
+## Rule 9: Missing Script / Invalid UUID Debugging
+
+When encountering "Missing class" or "Script is missing or invalid":
+1. Query the node to find the invalid component
+2. Query the actual script asset
+3. Remove stale component via MCP
+4. Re-attach script via MCP
+5. Save -> Close -> Reopen -> Validate
+
+NEVER guess-fix a UUID or manually edit `__type__`.
+
+## Rule 10: Consult Skills Before Acting
+
+Before any Cocos scene work, always read:
+- `cocos-ai-best-practices/mcp-first-uuid-integrity.md` (mandatory)
+- `cocos-ai-best-practices/scene-guidelines.md`
+- `cocos-ai-best-practices/rendering-guidelines.md`
+- `cocos-ai-best-practices/common-pitfalls.md`
+
+These document real failures from this project. Following them prevents repeated mistakes.
+
+## Background
+
+These rules exist because of repeated UUID compression mismatches (base64url `-` vs standard base64 `+`) when AI hand-wrote scene JSON with computed `__type__` values, causing "Missing class" errors at runtime.

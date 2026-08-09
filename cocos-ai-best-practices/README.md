@@ -22,6 +22,7 @@ It is not an API reference. It captures development workflows, debugging experie
 
 ## Contents
 
+- [mcp-first-uuid-integrity.md](mcp-first-uuid-integrity.md) — **MCP First principle, UUID integrity, and scene serialization rules (READ FIRST)**
 - [development-workflow.md](development-workflow.md) — Recommended AI development lifecycle
 - [preview-debugging.md](preview-debugging.md) — Preview-first development and debug methodology
 - [scene-guidelines.md](scene-guidelines.md) — Scene modification rules and checklists
