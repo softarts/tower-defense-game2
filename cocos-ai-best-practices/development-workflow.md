@@ -107,6 +107,18 @@ When creating TypeScript components:
 5. Save scene
 6. Preview to verify behavior
 
+### Validation Strategy
+
+After creating or modifying scripts, do NOT run esbuild as a validation step. Instead:
+
+1. Verify compilation with `check_script`
+2. Attach to node via `node_script_management`
+3. Confirm attachment with `component_query`
+4. Save -> Close -> Reopen -> Validate scene
+5. Preview to verify runtime behavior
+
+See `typescript-validation-strategy.md` for the full policy on when esbuild may be used (diagnostic-only, not default).
+
 ### Import Pattern
 
 Always use ESM imports from `'cc'`:

@@ -97,7 +97,30 @@ Before any Cocos scene work, always read:
 - `cocos-ai-best-practices/rendering-guidelines.md`
 - `cocos-ai-best-practices/common-pitfalls.md`
 
+For 3D asset work (FBX, meshes, materials, textures), also read:
+- `cocos-ai-best-practices/3d-asset-integration.md` (mandatory for 3D asset tasks)
+
 These document real failures from this project. Following them prevents repeated mistakes.
+
+## Rule 11: No Default esbuild Validation
+
+esbuild must NOT be used as a default TypeScript validation step in this Cocos project.
+
+After modifying or creating Cocos TypeScript scripts, do NOT automatically run:
+- `npx esbuild ...`
+- `npm exec esbuild ...`
+- Any bundler validation that generates `temp_validate.js`
+
+esbuild is permitted ONLY as an optional diagnostic tool when encountering:
+- Unresolvable TypeScript imports
+- Broken script dependency chains
+- Obvious TypeScript syntax/module errors
+
+If esbuild permission is denied, skip silently and continue development. Never request expanded permissions for esbuild.
+
+Primary validation: Cocos MCP (`check_script`, `component_query`) + Preview.
+
+See `cocos-ai-best-practices/typescript-validation-strategy.md` for the full policy.
 
 ## Background
 

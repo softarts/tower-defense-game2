@@ -28,6 +28,8 @@ It is not an API reference. It captures development workflows, debugging experie
 - [scene-guidelines.md](scene-guidelines.md) — Scene modification rules and checklists
 - [rendering-guidelines.md](rendering-guidelines.md) — Sprite visibility and runtime rendering
 - [common-pitfalls.md](common-pitfalls.md) — Known issues and their root causes
+- [typescript-validation-strategy.md](typescript-validation-strategy.md) — **TypeScript validation rules: esbuild is diagnostic-only, Cocos MCP + Preview is primary**
+- [3d-asset-integration.md](3d-asset-integration.md) — **3D asset import: FBX, texture, material, camera guidelines (lessons from Tower integration)**
 - [prompt-template.md](prompt-template.md) — Standard prompt structure and completion criteria
 
 ## Contributing

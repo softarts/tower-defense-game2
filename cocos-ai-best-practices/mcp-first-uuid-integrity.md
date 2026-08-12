@@ -236,7 +236,8 @@ If Cocos MCP is not running or not available for the current session:
 - Writing TypeScript scripts (`.ts` files)
 - Writing game data JSON files
 - Writing configuration files
-- Validating TypeScript with esbuild
+
+> **Note**: esbuild is NOT a default validation step. See `typescript-validation-strategy.md` for details. esbuild may only be used as an optional diagnostic tool for specific import/dependency issues.
 
 ### Requires MCP or Editor
 
