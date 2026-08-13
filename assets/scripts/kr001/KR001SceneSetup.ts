@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, log, warn, resources, Prefab, instantiate, Vec3 } from 'cc';
 import { LevelDataManager, LevelData } from './LevelDataManager';
 import { KR001BuildPoint } from './KR001BuildPoint';
+import { KR001Builder } from './KR001Builder';
 
 const { ccclass, property } = _decorator;
 
@@ -44,6 +45,9 @@ export class KR001SceneSetup extends Component {
 
     /** Cached reference to the loaded level data */
     private _levelData: LevelData | null = null;
+
+    /** Shared KR001Builder instance for the build menu */
+    private _builder: KR001Builder | null = null;
 
     start(): void {
         log('[KR001SceneSetup] Scene initialized');
@@ -106,6 +110,7 @@ export class KR001SceneSetup extends Component {
 
     /**
      * Create build point markers at positions defined in levelData.posOfBuilders.
+     * Also loads and instantiates the KR001Builder (build menu) as a single shared instance.
      * 
      * Reference: levelScene.ts buildScene()
      *   let posArr = this.levelData.posOfBuilders;
@@ -115,7 +120,7 @@ export class KR001SceneSetup extends Component {
      *       n.setPosition(posArr[i]);
      *   }
      * 
-     * Uses KR001BuildPoint.prefab from resources/prefabs/build/.
+     * Uses KR001BuildPoint.prefab and KR001Builder.prefab from resources/prefabs/build/.
      */
     private createBuildPoints(): void {
         if (!this._levelData) {
@@ -132,30 +137,46 @@ export class KR001SceneSetup extends Component {
         const posArr = this._levelData.posOfBuilders;
         log(`[KR001SceneSetup] Creating build points... (${posArr.length} positions found in levelConfig)`);
 
-        // Load the KR001BuildPoint prefab then instantiate at each position
-        resources.load('prefabs/build/KR001BuildPoint', Prefab, (err, prefab) => {
+        // Load both prefabs: build point and builder menu
+        resources.load('prefabs/build/KR001BuildPoint', Prefab, (err, buildPointPrefab) => {
             if (err) {
                 warn(`[KR001SceneSetup] Failed to load KR001BuildPoint prefab: ${err.message}`);
                 return;
             }
 
-            for (let i = 0; i < posArr.length; i++) {
-                const pos = posArr[i];
-                log(`[KR001SceneSetup] Build point ${i} at (${pos.x}, ${pos.y})`);
-
-                const buildPointNode = instantiate(prefab);
-                buildPointNode.name = `BuildPoint_${i}`;
-                buildPointNode.setPosition(new Vec3(pos.x, pos.y, 0));
-
-                const buildPointComp = buildPointNode.getComponent(KR001BuildPoint);
-                if (buildPointComp) {
-                    buildPointComp.init(i);
+            resources.load('prefabs/build/KR001Builder', Prefab, (err2, builderPrefab) => {
+                if (err2) {
+                    warn(`[KR001SceneSetup] Failed to load KR001Builder prefab: ${err2.message}`);
+                    return;
                 }
 
-                buildRoot.addChild(buildPointNode);
-            }
+                // Create the single shared builder menu instance
+                const builderNode = instantiate(builderPrefab);
+                builderNode.name = 'KR001Builder';
+                buildRoot.addChild(builderNode);
+                this._builder = builderNode.getComponent(KR001Builder);
+                log('[KR001SceneSetup] KR001Builder instance created');
 
-            log(`[KR001SceneSetup] ${posArr.length} build points created successfully`);
+                // Create build points
+                for (let i = 0; i < posArr.length; i++) {
+                    const pos = posArr[i];
+                    log(`[KR001SceneSetup] Build point ${i} at (${pos.x}, ${pos.y})`);
+
+                    const buildPointNode = instantiate(buildPointPrefab);
+                    buildPointNode.name = `BuildPoint_${i}`;
+                    buildPointNode.setPosition(new Vec3(pos.x, pos.y, 0));
+
+                    const buildPointComp = buildPointNode.getComponent(KR001BuildPoint);
+                    if (buildPointComp) {
+                        buildPointComp.init(i);
+                        buildPointComp.setBuilder(this._builder!);
+                    }
+
+                    buildRoot.addChild(buildPointNode);
+                }
+
+                log(`[KR001SceneSetup] ${posArr.length} build points created successfully`);
+            });
         });
     }
 }

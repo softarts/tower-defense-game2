@@ -64,19 +64,26 @@ Never assume MCP "success" means the change is correct and persistent.
 - Never store Cocos UUIDs in game data
 - Runtime TypeScript uses `@property(Node)` or `getChildByName()`, never `getNodeByUuid()`
 
-## Rule 8: When MCP is Unavailable
+## Rule 8: MCP Availability is a Hard Prerequisite
 
-Only create:
+**Before executing ANY task that involves scenes, nodes, prefabs, components, sprites, UI, or asset references, the AI MUST first confirm MCP is running and responsive by calling a simple MCP query (e.g. `scene_management.get_current`).**
+
+If MCP is unavailable, not responding, or connection fails:
+- **STOP IMMEDIATELY.** Do not proceed with any Cocos-related work.
+- Do not modify TypeScript files that depend on scene/prefab structure.
+- Do not create `.scene`, `.prefab`, or `.meta` files.
+- Do not hand-write prefab JSON as a workaround.
+- Do not guess or fabricate UUIDs.
+- Do not use any alternative approach to bypass MCP.
+- Report: "MCP 当前不可用，因此没有执行代码或 prefab 修改任务。"
+- Wait for user to confirm MCP is available before continuing.
+
+When MCP IS available, only create via code (not MCP):
 - TypeScript scripts (`.ts` files)
 - Game data JSON files
 - Configuration files
 
-Do NOT create:
-- `.scene` files
-- `.prefab` files
-- `.meta` files
-
-Defer scene assembly to when MCP is available.
+All other Cocos asset operations MUST go through MCP.
 
 ## Rule 9: Missing Script / Invalid UUID Debugging
 
