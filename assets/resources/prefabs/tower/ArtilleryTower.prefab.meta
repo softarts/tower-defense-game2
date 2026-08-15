@@ -1,0 +1,14 @@
+{
+  "ver": "1.1.50",
+  "importer": "prefab",
+  "imported": true,
+  "uuid": "e2287257-c7ad-498b-8b51-3f8fefaa1b49",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {},
+  "userData": {
+    "syncNodeName": "ArtilleryTower",
+    "hasIcon": false
+  }
+}

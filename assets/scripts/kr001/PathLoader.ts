@@ -1,4 +1,5 @@
 import { Vec2, resources, JsonAsset, log, error } from 'cc';
+import { CommonConstant } from './CommonConstant';
 
 /**
  * Road path data structure matching road1.json format.
@@ -30,7 +31,7 @@ export class PathLoader {
      */
     static load(roadName: string): Promise<Vec2[]> {
         return new Promise((resolve, reject) => {
-            const resourcePath = `level1/${roadName}`;
+            const resourcePath = CommonConstant.roadData(1, roadName);
             log(`[PathLoader] Loading path: ${resourcePath}`);
 
             resources.load(resourcePath, JsonAsset, (err, jsonAsset) => {

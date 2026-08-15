@@ -1,0 +1,14 @@
+{
+  "ver": "1.1.50",
+  "importer": "prefab",
+  "imported": true,
+  "uuid": "deb67aeb-ce19-4c8c-8f7e-6e7b7dcd0fd6",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {},
+  "userData": {
+    "syncNodeName": "ArtilleryBullet",
+    "hasIcon": false
+  }
+}

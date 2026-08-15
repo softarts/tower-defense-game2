@@ -1,4 +1,5 @@
 import { resources, JsonAsset, log, warn } from 'cc';
+import { CommonConstant } from './CommonConstant';
 
 /**
  * LevelData describes the configuration for a single level.
@@ -46,7 +47,7 @@ export class LevelDataManager {
      * @returns Promise that resolves with the parsed LevelData
      */
     static loadLevel(levelNum: number): Promise<LevelData> {
-        const path = `level${levelNum}/levelConfig`;
+        const path = CommonConstant.levelConfig(levelNum);
 
         return new Promise<LevelData>((resolve, reject) => {
             resources.load(path, JsonAsset, (err, jsonAsset) => {

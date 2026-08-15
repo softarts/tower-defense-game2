@@ -2,6 +2,7 @@ import { _decorator, Component, Node, log, warn, resources, Prefab, instantiate,
 import { LevelDataManager, LevelData } from './LevelDataManager';
 import { KR001BuildPoint } from './KR001BuildPoint';
 import { KR001Builder } from './KR001Builder';
+import { CommonConstant } from './CommonConstant';
 
 const { ccclass, property } = _decorator;
 
@@ -138,13 +139,13 @@ export class KR001SceneSetup extends Component {
         log(`[KR001SceneSetup] Creating build points... (${posArr.length} positions found in levelConfig)`);
 
         // Load both prefabs: build point and builder menu
-        resources.load('prefabs/build/KR001BuildPoint', Prefab, (err, buildPointPrefab) => {
+        resources.load(CommonConstant.PREFAB_BUILD_POINT, Prefab, (err, buildPointPrefab) => {
             if (err) {
                 warn(`[KR001SceneSetup] Failed to load KR001BuildPoint prefab: ${err.message}`);
                 return;
             }
 
-            resources.load('prefabs/build/KR001Builder', Prefab, (err2, builderPrefab) => {
+            resources.load(CommonConstant.PREFAB_BUILDER, Prefab, (err2, builderPrefab) => {
                 if (err2) {
                     warn(`[KR001SceneSetup] Failed to load KR001Builder prefab: ${err2.message}`);
                     return;
@@ -153,7 +154,6 @@ export class KR001SceneSetup extends Component {
                 // Create the single shared builder menu instance
                 const builderNode = instantiate(builderPrefab);
                 builderNode.name = 'KR001Builder';
-                buildRoot.addChild(builderNode);
                 this._builder = builderNode.getComponent(KR001Builder);
                 log('[KR001SceneSetup] KR001Builder instance created');
 
@@ -174,6 +174,12 @@ export class KR001SceneSetup extends Component {
 
                     buildRoot.addChild(buildPointNode);
                 }
+
+                // Keep the build menu above every build-point land sprite.
+                // Build points are added after the menu is instantiated, so adding
+                // the menu last gives it the highest sibling render order and
+                // prevents land sprites from covering tower buttons.
+                buildRoot.addChild(builderNode);
 
                 log(`[KR001SceneSetup] ${posArr.length} build points created successfully`);
             });

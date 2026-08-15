@@ -1,4 +1,5 @@
 import { Node, Prefab, instantiate, resources, log, error } from 'cc';
+import { CommonConstant } from './CommonConstant';
 
 /**
  * EnemyFactory loads KR001Enemy.prefab and instantiates enemies.
@@ -17,8 +18,6 @@ export class EnemyFactory {
     private static _prefab: Prefab | null = null;
     private static _loadPromise: Promise<void> | null = null;
 
-    private static readonly PREFAB_PATH = 'prefabs/enemy/KR001Enemy';
-
     /**
      * Preload the enemy prefab. Call once before spawning.
      */
@@ -33,7 +32,7 @@ export class EnemyFactory {
         log('[EnemyFactory] Loading KR001Enemy prefab...');
 
         EnemyFactory._loadPromise = new Promise<void>((resolve, reject) => {
-            resources.load(EnemyFactory.PREFAB_PATH, Prefab, (err, prefab) => {
+            resources.load(CommonConstant.PREFAB_ENEMY, Prefab, (err, prefab) => {
                 if (err) {
                     error(`[EnemyFactory] Failed to load prefab: ${err.message}`);
                     EnemyFactory._loadPromise = null;

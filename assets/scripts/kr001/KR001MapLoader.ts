@@ -2,6 +2,7 @@ import {
     _decorator, Component, Sprite, SpriteFrame, UITransform, Size,
     resources, log, error
 } from 'cc';
+import { CommonConstant } from './CommonConstant';
 
 const { ccclass, property } = _decorator;
 
@@ -18,7 +19,7 @@ const { ccclass, property } = _decorator;
 export class KR001MapLoader extends Component {
 
     @property({ tooltip: 'Map image resource path (without extension, relative to resources/)' })
-    mapPath: string = 'level1/map1/spriteFrame';
+    mapPath: string = CommonConstant.MAP_LEVEL1;
 
     /** Map dimensions (will be set from loaded image) */
     private _mapWidth: number = 0;

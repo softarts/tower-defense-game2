@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, log, tween, Vec3 } from 'cc';
 import { KR001BuildPoint } from './KR001BuildPoint';
+import { CommonConstant } from './CommonConstant';
 
 const { ccclass, property } = _decorator;
 
@@ -9,10 +10,12 @@ const { ccclass, property } = _decorator;
  * Reference: kingdomRush-gxh1996 builder.ts
  * - outBuildFace(): shows the menu with scale animation
  * - hiddenBuildFace(): hides with scale-down animation
+ * - buildArrowTower/buildBarrackTower/etc: instantiate tower prefab
  *
  * This is a single-instance component placed on a node in the scene.
  * When a build point is clicked, show() is called to display the menu
- * at that build point's position.
+ * at that build point's position. When a tower button is clicked,
+ * it notifies the current build point to instantiate the selected tower.
  *
  * Structure (prefab):
  *   KR001Builder (this component)
@@ -40,7 +43,7 @@ export class KR001Builder extends Component {
     private _isShowing: boolean = false;
 
     /** Animation duration for show/hide (seconds) */
-    private readonly ANIM_DURATION: number = 0.15;
+    private readonly ANIM_DURATION: number = CommonConstant.BUILDER_ANIM_DURATION;
 
     onLoad(): void {
         this._buildFace = this.node.getChildByName('buildFace');
@@ -48,8 +51,52 @@ export class KR001Builder extends Component {
             this._g1 = this._buildFace.getChildByName('g1');
         }
 
+        // Register click events on tower buttons
+        this.registerButtonEvents();
+
         // Start hidden
         this.hide();
+    }
+
+    /**
+     * Register touch events on the 4 tower button nodes in g1.
+     * Uses TOUCH_END on each button node for click detection.
+     */
+    private registerButtonEvents(): void {
+        if (!this._g1) return;
+
+        const buttons = ['arrow', 'barrack', 'magiclan', 'artillery'];
+        for (const btnName of buttons) {
+            const btnNode = this._g1.getChildByName(btnName);
+            if (btnNode) {
+                btnNode.on(Node.EventType.TOUCH_END, () => {
+                    this.onBuildClicked(btnName);
+                }, this);
+            } else {
+                log(`[KR001Builder] Warning: button node '${btnName}' not found in g1`);
+            }
+        }
+    }
+
+    /**
+     * Handle a tower button click.
+     * Notifies the current build point to build the selected tower type.
+     *
+     * Reference: builder.ts buildArrowTower() → buildTower(prefab, component, cost)
+     */
+    private onBuildClicked(buildType: string): void {
+        log(`[KR001Builder] Tower selected: ${buildType}`);
+
+        if (!this._currentBuildPoint) {
+            log('[KR001Builder] No current build point, ignoring');
+            return;
+        }
+
+        // Notify the build point to perform the build
+        this._currentBuildPoint.onBuildSelected(buildType);
+
+        // Hide menu immediately (reference: hiddenBuildFaceImmediately)
+        this.hideImmediately();
     }
 
     /**
@@ -94,11 +141,9 @@ export class KR001Builder extends Component {
     }
 
     /**
-     * Hide the build menu.
+     * Hide the build menu with animation.
      *
      * Reference: builder.ts hiddenBuildFace()
-     *   - scale animation from 1 to 0
-     *   - then buildFace.active = false, g1.active = false
      */
     hide(): void {
         if (!this._buildFace) {
@@ -108,12 +153,10 @@ export class KR001Builder extends Component {
         this._isShowing = false;
         this._currentBuildPoint = null;
 
-        // If it's already inactive, just ensure state
         if (!this._buildFace.active) {
             return;
         }
 
-        // Scale animation: 1 -> 0
         tween(this._buildFace)
             .to(this.ANIM_DURATION, { scale: new Vec3(0, 0, 1) })
             .call(() => {
@@ -130,15 +173,27 @@ export class KR001Builder extends Component {
     }
 
     /**
-     * Whether the menu is currently visible.
+     * Hide the build menu immediately without animation.
+     *
+     * Reference: builder.ts hiddenBuildFaceImmediately()
      */
+    hideImmediately(): void {
+        if (!this._buildFace) return;
+
+        this._isShowing = false;
+        this._currentBuildPoint = null;
+
+        this._buildFace.setScale(new Vec3(0, 0, 1));
+        this._buildFace.active = false;
+        if (this._g1) {
+            this._g1.active = false;
+        }
+    }
+
     get isShowing(): boolean {
         return this._isShowing;
     }
 
-    /**
-     * Get the currently associated build point (or null if hidden).
-     */
     get currentBuildPoint(): KR001BuildPoint | null {
         return this._currentBuildPoint;
     }

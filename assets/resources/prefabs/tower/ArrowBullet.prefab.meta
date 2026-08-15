@@ -1,0 +1,14 @@
+{
+  "ver": "1.1.50",
+  "importer": "prefab",
+  "imported": true,
+  "uuid": "f83aa8f1-c6ba-42d2-804f-ba3265d6336b",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {},
+  "userData": {
+    "syncNodeName": "ArrowBullet",
+    "hasIcon": false
+  }
+}

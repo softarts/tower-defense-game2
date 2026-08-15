@@ -1,0 +1,14 @@
+{
+  "ver": "1.1.50",
+  "importer": "prefab",
+  "imported": true,
+  "uuid": "fd15bb2c-5ac3-4d30-9195-38b4d0671199",
+  "files": [
+    ".json"
+  ],
+  "subMetas": {},
+  "userData": {
+    "syncNodeName": "BarrackTower",
+    "hasIcon": false
+  }
+}
