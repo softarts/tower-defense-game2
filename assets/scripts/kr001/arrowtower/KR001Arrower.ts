@@ -47,8 +47,12 @@ export class KR001Arrower extends Component {
         if (!prefab) return;
 
         const enemies = this._enemyRoot.children;
-        // Reference uses tower's world position for range check
+        // Use tower's world position for range check
         const towerWorldPos = this._tower.node.getWorldPosition();
+
+        // Find closest enemy in range (not just first in list)
+        let closestEnemy: Node | null = null;
+        let closestDist = Infinity;
 
         for (let i = 0; i < enemies.length; i++) {
             const enemy = enemies[i];
@@ -57,10 +61,14 @@ export class KR001Arrower extends Component {
             const enemyPos = enemy.getWorldPosition();
             const dist = Vec3.distance(towerWorldPos, enemyPos);
 
-            if (dist <= this._shootRange) {
-                this.shoot(enemyPos, prefab);
-                break;
+            if (dist <= this._shootRange && dist < closestDist) {
+                closestDist = dist;
+                closestEnemy = enemy;
             }
+        }
+
+        if (closestEnemy) {
+            this.shoot(closestEnemy.getWorldPosition(), prefab);
         }
     }
 
@@ -90,7 +98,7 @@ export class KR001Arrower extends Component {
 
         // Launch with ArrowBullet component
         const bullet = bulletNode.addComponent(ArrowBullet);
-        bullet.launch(startWorldPos, targetWorldPos, this._bulletSpeed);
+        bullet.launch(startWorldPos, targetWorldPos, this._bulletSpeed, CommonConstant.ARROW_ATTACK);
 
         // Cooldown (reference: arrower.ts coolingShoot)
         this.scheduleOnce(() => {

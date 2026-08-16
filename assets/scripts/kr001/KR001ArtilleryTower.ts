@@ -1,6 +1,6 @@
 import { _decorator, Component, Node, Vec3, Prefab, instantiate, resources, find, log } from 'cc';
 import { CommonConstant } from './CommonConstant';
-import { MagiclanBullet } from './MagiclanBullet';
+import { MagiclanBullet } from './magiclantower/MagiclanBullet';
 
 const { ccclass, property } = _decorator;
 

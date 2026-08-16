@@ -1,72 +1,164 @@
-import { _decorator, Component, Vec2, log } from 'cc';
+import { _decorator, Component, Node, Vec2, Vec3, UITransform, UIOpacity, tween, log } from 'cc';
+import { GameDataStorage } from './GameDataStorage';
 
 const { ccclass, property } = _decorator;
 
 /**
- * KR001EnemyController moves an enemy along a pre-sampled waypoint path.
- * 
- * Responsibilities:
- * - Receive path (Vec2[]) and speed
- * - Move smoothly between waypoints each frame
- * - Destroy self upon reaching the final waypoint
- * 
- * This component does NOT handle:
- * - HP / damage / death (reserved for Task002)
- * - Attack / combat
- * - Animation (handled separately)
+ * KR001EnemyController moves an enemy along a path AND handles HP/damage/death.
+ *
+ * Reference: kingdomRush-gxh1996
+ * - creature.ts: injure(v), refreshBloodBar(), die(), cHP/maxHp
+ * - monster.ts: refreshState() checks HP=0 → die → playDie → releaseSelf
+ *
+ * Cocos 3.x approach:
+ * - ProgressBar child node "bloodBar" for HP display
+ * - injure(v) called by bullet onBeginContact
+ * - When HP <= 0: stop movement, fade out, destroy
  */
 @ccclass('KR001EnemyController')
 export class KR001EnemyController extends Component {
 
-    /** Movement speed in units per second */
     @property({ tooltip: 'Movement speed (units/second)' })
     moveSpeed: number = 25;
 
-    /** Waypoints in node-local coordinates (Vec2, same space as parent node) */
+    // ─── HP System (reference: creature.ts cHP/maxHp) ───
+    private _maxHP: number = 30;
+    private _currentHP: number = 30;
+    private _isAlive: boolean = true;
+
+    // ─── Blood Bar ───
+    private _bloodBarNode: Node | null = null;
+    private _hpBarNode: Node | null = null;
+    private _hpBarTransform: UITransform | null = null;
+    private _hpBarFullWidth: number = 20;
+
+    // ─── Path Movement ───
     private _path: Vec2[] = [];
-
-    /** Current target waypoint index */
     private _currentIndex: number = 0;
-
-    /** Whether currently moving */
     private _isMoving: boolean = false;
 
-    /** Callback when enemy reaches the final waypoint (exit) */
     public onReachedExit: (() => void) | null = null;
+    public onDeath: (() => void) | null = null;
 
     /**
-     * Initialize enemy with path and optional speed.
-     * Places the enemy at the first waypoint and begins movement.
-     * 
-     * @param path - Array of Vec2 waypoints in parent-local coordinates
-     * @param speed - Optional movement speed override
+     * Initialize enemy with path and speed.
+     * Also reads HP from GameDataStorage if available.
      */
     public init(path: Vec2[], speed?: number): void {
         if (!path || path.length < 2) {
-            log('[KR001EnemyController] Invalid path (need at least 2 points)');
+            log('[KR001EnemyController] Invalid path');
             return;
         }
 
         this._path = path;
-        this._currentIndex = 1; // Start moving toward second point
+        this._currentIndex = 1;
         if (speed !== undefined) {
             this.moveSpeed = speed;
+        }
+
+        // Read HP from gameConfig (reference: monster.ts init → md.HP)
+        if (GameDataStorage.isLoaded()) {
+            const md = GameDataStorage.getGameConfig().getMonsterData();
+            if (md && md[0]) {
+                this._maxHP = md[0].HP;
+            }
+        }
+        this._currentHP = this._maxHP;
+
+        // Find blood bar child node (red bg + green hpBar child)
+        this._bloodBarNode = this.node.getChildByName('bloodBar');
+        if (this._bloodBarNode) {
+            this._hpBarNode = this._bloodBarNode.getChildByName('hpBar');
+            if (this._hpBarNode) {
+                this._hpBarTransform = this._hpBarNode.getComponent(UITransform);
+                if (this._hpBarTransform) {
+                    this._hpBarFullWidth = this._hpBarTransform.width;
+                }
+            }
+            // Initially hidden
+            this._bloodBarNode.active = false;
         }
 
         // Place at first waypoint
         const start = path[0];
         this.node.setPosition(start.x, start.y, 0);
         this._isMoving = true;
+        this._isAlive = true;
+    }
+
+    /**
+     * Receive damage from a projectile.
+     *
+     * Reference: creature.ts injure(v)
+     *   - if cHP === 0 return
+     *   - cHP -= v; if cHP < 0 → cHP = 0
+     *
+     * Also shows and updates blood bar.
+     */
+    public injure(damage: number): void {
+        if (!this._isAlive || this._currentHP <= 0) return;
+
+        this._currentHP -= damage;
+        if (this._currentHP < 0) this._currentHP = 0;
+
+        // Show blood bar on first hit
+        if (this._bloodBarNode && !this._bloodBarNode.active) {
+            this._bloodBarNode.active = true;
+        }
+
+        // Update blood bar (reference: creature.ts refreshBloodBar)
+        this.refreshBloodBar();
+
+        // Check death (reference: monster.ts refreshState → if cHP === 0 → die)
+        if (this._currentHP <= 0) {
+            this.die();
+        }
+    }
+
+    /**
+     * Update blood bar: shrink green hpBar width over red background.
+     * Full green = full HP, all red = dead.
+     */
+    private refreshBloodBar(): void {
+        if (this._hpBarTransform) {
+            const ratio = this._currentHP / this._maxHP;
+            this._hpBarTransform.width = this._hpBarFullWidth * ratio;
+        }
+    }
+
+    /**
+     * Handle death.
+     * Reference: monster.ts → die(monstersOfAlive, this) → playDie → releaseSelf
+     * Simplified: stop movement → fade out → destroy
+     */
+    private die(): void {
+        this._isAlive = false;
+        this._isMoving = false;
+
+        log(`[KR001EnemyController] Enemy died`);
+
+        if (this.onDeath) {
+            this.onDeath();
+        }
+
+        // Fade out and destroy (reference: creature.playDie → fadeOut(1) → destroy)
+        let opacity = this.node.getComponent(UIOpacity);
+        if (!opacity) {
+            opacity = this.node.addComponent(UIOpacity);
+        }
+        tween(opacity)
+            .to(0.5, { opacity: 0 })
+            .call(() => {
+                this.node.destroy();
+            })
+            .start();
     }
 
     update(dt: number): void {
-        if (!this._isMoving || this._path.length === 0) {
-            return;
-        }
+        if (!this._isMoving || !this._isAlive) return;
 
         if (this._currentIndex >= this._path.length) {
             this._isMoving = false;
-            log('[KR001EnemyController] Reached exit');
             if (this.onReachedExit) {
                 this.onReachedExit();
             }
@@ -82,17 +174,18 @@ export class KR001EnemyController extends Component {
         const step = this.moveSpeed * dt;
 
         if (step >= distance) {
-            // Arrived at waypoint — snap and advance
             this.node.setPosition(target.x, target.y, 0);
             this._currentIndex++;
         } else {
-            // Move toward target
             const ratio = step / distance;
             this.node.setPosition(pos.x + dx * ratio, pos.y + dy * ratio, 0);
         }
     }
 
-    /** Check if enemy is still alive and moving */
+    public get isAlive(): boolean {
+        return this._isAlive;
+    }
+
     public get isMoving(): boolean {
         return this._isMoving;
     }

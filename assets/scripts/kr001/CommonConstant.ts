@@ -70,11 +70,13 @@ export class CommonConstant {
     static readonly ARROW_SHOOT_RANGE = 150;
     static readonly ARROW_BULLET_SPEED = 120;
     static readonly ARROW_COOLDOWN = 1.5;
+    static readonly ARROW_ATTACK = 4;  // reference: gameConfig.dataOfTower.arrowTower[0].attack
 
     // Magiclan Tower
     static readonly MAGICLAN_SHOOT_RANGE = 170;
     static readonly MAGICLAN_BULLET_SPEED = 150;
     static readonly MAGICLAN_COOLDOWN = 1.8;
+    static readonly MAGICLAN_ATTACK = 8;
 
     // Artillery Tower
     static readonly ARTILLERY_SHOOT_RANGE = 200;

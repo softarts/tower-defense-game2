@@ -3,7 +3,7 @@
     "monsterData": [
         {
             "no": 0,
-            "HP": 30,
+            "HP": 10,
             "speedOfMove": 25,
             "intervalOfAttack": 1,
             "aggressivity": 10,

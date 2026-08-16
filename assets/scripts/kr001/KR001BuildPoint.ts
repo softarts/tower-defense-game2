@@ -2,7 +2,7 @@ import { _decorator, Component, Node, EventTouch, Prefab, instantiate, resources
 import { KR001Builder } from './KR001Builder';
 import { CommonConstant } from './CommonConstant';
 import { KR001ArrowTower } from './arrowtower/KR001ArrowTower';
-import { KR001MagiclanTower } from './KR001MagiclanTower';
+import { KR001MagiclanTower } from './magiclantower/KR001MagiclanTower';
 import { KR001ArtilleryTower } from './KR001ArtilleryTower';
 
 const { ccclass, property } = _decorator;

@@ -1,16 +1,15 @@
 import { _decorator, Component, Node, Vec3, Prefab, instantiate, resources, find, log } from 'cc';
-import { CommonConstant } from './CommonConstant';
+import { CommonConstant } from '../CommonConstant';
 import { MagiclanBullet } from './MagiclanBullet';
 
 const { ccclass, property } = _decorator;
 
 /**
- * KR001MagiclanTower handles magic tower attack logic.
+ * KR001MagiclanTower — magic tower attack logic.
  *
  * Reference: kingdomRush-gxh1996 magiclanTower.ts
- * - update(): iterate monsters, check range, shoot first in-range enemy
- * - forecastMovePos(): predict enemy position
- * - shoot(des, time): fires at predicted position
+ * - update(): find CLOSEST enemy in range, shoot at it
+ * - shoot(): create magic bullet toward target
  * - coolingShoot(): scheduleOnce cooldown
  */
 @ccclass('KR001MagiclanTower')
@@ -23,7 +22,6 @@ export class KR001MagiclanTower extends Component {
 
     private _enemyRoot: Node | null = null;
     private _bulletPrefab: Prefab | null = null;
-    private _enemyLastPositions: Map<Node, Vec3> = new Map();
 
     onLoad(): void {
         this._enemyRoot = find(`Canvas/${CommonConstant.NODE_ENEMY_ROOT}`);
@@ -43,6 +41,10 @@ export class KR001MagiclanTower extends Component {
         const enemies = this._enemyRoot.children;
         const myPos = this.node.getWorldPosition();
 
+        // Find closest enemy in range
+        let closestEnemy: Node | null = null;
+        let closestDist = Infinity;
+
         for (let i = 0; i < enemies.length; i++) {
             const enemy = enemies[i];
             if (!enemy.active) continue;
@@ -50,41 +52,14 @@ export class KR001MagiclanTower extends Component {
             const enemyPos = enemy.getWorldPosition();
             const dist = Vec3.distance(myPos, enemyPos);
 
-            if (dist <= this._shootRange) {
-                const predictedPos = this.forecastPosition(enemy, enemyPos, dt);
-                this.shoot(predictedPos);
-                break;
+            if (dist <= this._shootRange && dist < closestDist) {
+                closestDist = dist;
+                closestEnemy = enemy;
             }
         }
 
-        this.updateLastPositions();
-    }
-
-    private forecastPosition(enemy: Node, currentPos: Vec3, dt: number): Vec3 {
-        const startPos = this.node.getWorldPosition();
-        const dist = Vec3.distance(startPos, currentPos);
-        const flightTime = dist / this._bulletSpeed;
-
-        const lastPos = this._enemyLastPositions.get(enemy);
-        if (!lastPos || dt <= 0) return currentPos.clone();
-
-        const vx = (currentPos.x - lastPos.x) / dt;
-        const vy = (currentPos.y - lastPos.y) / dt;
-
-        return new Vec3(
-            currentPos.x + vx * flightTime,
-            currentPos.y + vy * flightTime,
-            0
-        );
-    }
-
-    private updateLastPositions(): void {
-        if (!this._enemyRoot) return;
-        this._enemyLastPositions.clear();
-        for (const enemy of this._enemyRoot.children) {
-            if (enemy.active) {
-                this._enemyLastPositions.set(enemy, enemy.getWorldPosition().clone());
-            }
+        if (closestEnemy) {
+            this.shoot(closestEnemy.getWorldPosition());
         }
     }
 
@@ -98,7 +73,7 @@ export class KR001MagiclanTower extends Component {
         this.node.parent!.addChild(bulletNode);
 
         const bullet = bulletNode.addComponent(MagiclanBullet);
-        bullet.launch(startPos, targetPos, this._bulletSpeed);
+        bullet.launch(startPos, targetPos, this._bulletSpeed, CommonConstant.MAGICLAN_ATTACK);
 
         this.scheduleOnce(() => {
             this._canShoot = true;

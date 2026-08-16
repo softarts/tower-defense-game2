@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, log, warn, resources, Prefab, instantiate, Vec3 } from 'cc';
+import { _decorator, Component, Node, log, warn, resources, Prefab, instantiate, Vec3, PhysicsSystem2D } from 'cc';
 import { LevelDataManager, LevelData } from './LevelDataManager';
 import { KR001BuildPoint } from './KR001BuildPoint';
 import { KR001Builder } from './KR001Builder';
@@ -57,9 +57,11 @@ export class KR001SceneSetup extends Component {
         log(`[KR001SceneSetup] BuildRoot: ${this.buildRoot?.name || 'not set'}`);
         log(`[KR001SceneSetup] EnemyRoot: ${this.enemyRoot?.name || 'not set'}`);
 
-        // Load level data first, then proceed with scene building.
-        // This mirrors the reference project's levelScene.buildScene() flow:
-        // load resources -> get level data -> initialize subsystems.
+        // Enable 2D physics for collision detection between arrows and enemies.
+        // Reference: levelScene.ts → cc.director.getCollisionManager().enabled = true
+        PhysicsSystem2D.instance.enable = true;
+        log('[KR001SceneSetup] PhysicsSystem2D enabled');
+
         this.loadLevelAndInit();
     }
 
