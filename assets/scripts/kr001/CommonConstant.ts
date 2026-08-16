@@ -82,10 +82,26 @@ export class CommonConstant {
     static readonly ARTILLERY_SHOOT_RANGE = 200;
     static readonly ARTILLERY_BULLET_SPEED = 120;
     static readonly ARTILLERY_COOLDOWN = 3.0;
+    static readonly ARTILLERY_ATTACK = 6;
+    static readonly ARTILLERY_BOMB_RANGE = 50;
 
     // ═══ Scene Node Names ════════════════════════════════
 
     static readonly NODE_ENEMY_ROOT = 'EnemyRoot';
+
+    // ═══ Barrack Tower ══════════════════════════════════════
+
+    static readonly BARRACK_MAX_SOLDIERS = 3;
+    static readonly BARRACK_SPAWN_COOLDOWN = 3.0;
+
+    // ═══ Soldier ════════════════════════════════════════════
+
+    static readonly SOLDIER_SPEED = 40;
+    static readonly SOLDIER_ATTACK_RANGE = 18;
+    static readonly SOLDIER_INVESTIGATE_RANGE = 80;
+    static readonly SOLDIER_ATTACK_DAMAGE = 5;
+    static readonly SOLDIER_ATTACK_INTERVAL = 1.0;
+    static readonly SOLDIER_HP = 20;
 
     // ═══ Game Config ════════════════════════════════════
 

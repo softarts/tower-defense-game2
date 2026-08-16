@@ -1,6 +1,6 @@
 import { _decorator, Component, Node, Vec3, Prefab, instantiate, resources, find, log } from 'cc';
-import { CommonConstant } from './CommonConstant';
-import { MagiclanBullet } from './magiclantower/MagiclanBullet';
+import { CommonConstant } from '../CommonConstant';
+import { ArtilleryBullet } from './ArtilleryBullet';
 
 const { ccclass, property } = _decorator;
 
@@ -9,11 +9,14 @@ const { ccclass, property } = _decorator;
  *
  * Reference: kingdomRush-gxh1996 artilleryTower.ts
  * - update(): iterate monsters, check range, shoot first in-range
- * - forecastMovePos(): predict enemy position
+ * - forecastMovePos(): predict enemy position based on velocity
  * - shoot(): fire artillery bullet at predicted position
  * - Longer range and cooldown than other towers
+ * - Uses ArtilleryBullet for Bézier arc flight + AOE explosion
  *
- * Uses MagiclanBullet for flight (same arc logic, different visual via prefab sprite).
+ * Architecture (mirrors reference):
+ *   artilleryTower.ts → manages shooting, cooldown, prediction
+ *   artilleryBullet.ts → Bézier arc flight + AOE causeHarm
  */
 @ccclass('KR001ArtilleryTower')
 export class KR001ArtilleryTower extends Component {
@@ -22,6 +25,8 @@ export class KR001ArtilleryTower extends Component {
     private _shootRange: number = CommonConstant.ARTILLERY_SHOOT_RANGE;
     private _bulletSpeed: number = CommonConstant.ARTILLERY_BULLET_SPEED;
     private _cooldown: number = CommonConstant.ARTILLERY_COOLDOWN;
+    private _attack: number = CommonConstant.ARTILLERY_ATTACK;
+    private _bombRange: number = CommonConstant.ARTILLERY_BOMB_RANGE;
 
     private _enemyRoot: Node | null = null;
     private _bulletPrefab: Prefab | null = null;
@@ -62,6 +67,13 @@ export class KR001ArtilleryTower extends Component {
         this.updateLastPositions();
     }
 
+    /**
+     * Predict enemy position at the time the bullet arrives.
+     *
+     * Reference: artilleryTower.ts forecastMovePos(monster, cP)
+     * - Calculates bullet flight time based on distance
+     * - Uses enemy velocity (current - last position) to predict future position
+     */
     private forecastPosition(enemy: Node, currentPos: Vec3, dt: number): Vec3 {
         const startPos = this.node.getWorldPosition();
         const dist = Vec3.distance(startPos, currentPos);
@@ -90,6 +102,12 @@ export class KR001ArtilleryTower extends Component {
         }
     }
 
+    /**
+     * Fire an artillery shell at the target position.
+     *
+     * Reference: artilleryTower.ts shoot(des, time) → shootBullet → createBullet
+     * Uses ArtilleryBullet with Bézier arc + AOE explosion.
+     */
     private shoot(targetPos: Vec3): void {
         this._canShoot = false;
 
@@ -99,8 +117,8 @@ export class KR001ArtilleryTower extends Component {
         bulletNode.name = 'ArtilleryBullet';
         this.node.parent!.addChild(bulletNode);
 
-        const bullet = bulletNode.addComponent(MagiclanBullet);
-        bullet.launch(startPos, targetPos, this._bulletSpeed);
+        const bullet = bulletNode.addComponent(ArtilleryBullet);
+        bullet.launch(startPos, targetPos, this._bulletSpeed, this._attack, this._bombRange);
 
         this.scheduleOnce(() => {
             this._canShoot = true;

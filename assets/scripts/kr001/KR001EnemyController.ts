@@ -155,7 +155,7 @@ export class KR001EnemyController extends Component {
     }
 
     update(dt: number): void {
-        if (!this._isMoving || !this._isAlive) return;
+        if (!this._isMoving || !this._isAlive || this._isEngaged) return;
 
         if (this._currentIndex >= this._path.length) {
             this._isMoving = false;
@@ -182,11 +182,47 @@ export class KR001EnemyController extends Component {
         }
     }
 
+    // ─── Soldier Engagement (reference: monster.ts tracking/combat state) ───
+    private _isEngaged: boolean = false;
+    private _engageCount: number = 0;
+
     public get isAlive(): boolean {
         return this._isAlive;
     }
 
     public get isMoving(): boolean {
         return this._isMoving;
+    }
+
+    /**
+     * Called by KR001Soldier when engaging this enemy in melee combat.
+     * Stops the enemy from walking along its path.
+     *
+     * Reference: monster.ts — when soldier tracks and reaches attack range,
+     * the monster stops moving and fights back.
+     */
+    public engage(): void {
+        this._engageCount++;
+        this._isEngaged = true;
+    }
+
+    /**
+     * Called by KR001Soldier when disengaging (soldier dies or target changes).
+     * Resumes walking if no other soldiers are engaging.
+     */
+    public disengage(): void {
+        this._engageCount--;
+        if (this._engageCount <= 0) {
+            this._engageCount = 0;
+            this._isEngaged = false;
+        }
+    }
+
+    /**
+     * Convenience method to get world position.
+     * Reference: monster.ts getWPos()
+     */
+    public getWorldPos(): Vec3 {
+        return this.node.getWorldPosition();
     }
 }

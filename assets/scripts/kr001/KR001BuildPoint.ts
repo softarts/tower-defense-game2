@@ -3,7 +3,8 @@ import { KR001Builder } from './KR001Builder';
 import { CommonConstant } from './CommonConstant';
 import { KR001ArrowTower } from './arrowtower/KR001ArrowTower';
 import { KR001MagiclanTower } from './magiclantower/KR001MagiclanTower';
-import { KR001ArtilleryTower } from './KR001ArtilleryTower';
+import { KR001ArtilleryTower } from './artillerytower/KR001ArtilleryTower';
+import { KR001BarrackTower } from './barracktower/KR001BarrackTower';
 
 const { ccclass, property } = _decorator;
 
@@ -141,19 +142,14 @@ export class KR001BuildPoint extends Component {
             this.attachTowerScript(towerNode, buildType);
 
             log(`[KR001BuildPoint] Tower '${buildType}' built at point ${this._buildPointIndex}`);
-
-            // Barrack spawns soldiers after building
-            if (buildType === 'barrack') {
-                this.spawnSoldiers();
-            }
         });
     }
 
     /**
      * Attach the corresponding attack script to the tower node.
-     * Each tower type has its own controller that handles update() → detect → shoot.
+     * Each tower type has its own controller that handles update() → detect → shoot/spawn.
      *
-     * Reference: arrowTower.ts / magiclanTower.ts / artilleryTower.ts
+     * Reference: arrowTower.ts / magiclanTower.ts / artilleryTower.ts / barrack.ts
      */
     private attachTowerScript(towerNode: Node, buildType: string): void {
         switch (buildType) {
@@ -166,44 +162,12 @@ export class KR001BuildPoint extends Component {
             case 'artillery':
                 towerNode.addComponent(KR001ArtilleryTower);
                 break;
-            // barrack doesn't shoot
+            case 'barrack': {
+                const barrack = towerNode.addComponent(KR001BarrackTower);
+                barrack.initStations();
+                break;
+            }
         }
-    }
-
-    /**
-     * Spawn soldiers around the barrack.
-     * Reference: barrack.ts spawns soldiers at outSoldierPos(2,-16) then moves them to stationOfSoldier positions.
-     * For now, soldiers are placed in a spread pattern near the barrack.
-     */
-    private spawnSoldiers(): void {
-        resources.load(CommonConstant.PREFAB_SOLDIER, Prefab, (err, soldierPrefab) => {
-            if (err) {
-                warn(`[KR001BuildPoint] Failed to load soldier prefab: ${err.message}`);
-                return;
-            }
-
-            const parent = this.node.parent;
-            if (!parent) return;
-
-            const basePos = this.node.getPosition();
-            const offsetX = CommonConstant.BARRACK_SOLDIER_OFFSET_X;
-            const offsetY = CommonConstant.BARRACK_SOLDIER_OFFSET_Y;
-            const spread = CommonConstant.SOLDIER_SPREAD;
-
-            for (let i = 0; i < CommonConstant.BARRACK_SOLDIER_COUNT; i++) {
-                const soldier = instantiate(soldierPrefab);
-                soldier.name = `Soldier_${this._buildPointIndex}_${i}`;
-
-                // Spread soldiers in a line below the barrack
-                const sx = basePos.x + offsetX + (i - 1.5) * spread;
-                const sy = basePos.y + offsetY;
-                soldier.setPosition(new Vec3(sx, sy, 0));
-
-                parent.addChild(soldier);
-            }
-
-            log(`[KR001BuildPoint] ${CommonConstant.BARRACK_SOLDIER_COUNT} soldiers spawned at build point ${this._buildPointIndex}`);
-        });
     }
 
     /**

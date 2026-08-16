@@ -29,22 +29,11 @@ export class MagiclanBullet extends Component {
         const distance = Vec3.distance(startWorldPos, endWorldPos);
         const duration = distance / speed;
 
-        const midX = (startWorldPos.x + endWorldPos.x) / 2;
-        const controlY = endWorldPos.y + 60;
-        let controlX = midX;
-        if (Math.abs(startWorldPos.x - endWorldPos.x) < 1) {
-            controlX += 30;
-        }
-        const controlPoint = new Vec3(controlX, controlY, 0);
-
         this._flying = true;
 
-        const upDuration = duration * 0.45;
-        const downDuration = duration * 0.55;
-
+        // Straight-line flight (magic orbs fly directly to target)
         tween(this.node)
-            .to(upDuration, { worldPosition: controlPoint }, { easing: 'sineOut' })
-            .to(downDuration, { worldPosition: endWorldPos }, { easing: 'sineIn' })
+            .to(duration, { worldPosition: endWorldPos })
             .call(() => {
                 this._flying = false;
                 this.node.destroy();
