@@ -1,0 +1,66 @@
+{
+    "direction": "游戏全局配置。monsterData: 怪物属性数组(按编号索引)。dataOfTower: 各种塔的属性。",
+    "monsterData": [
+        {
+            "no": 0,
+            "HP": 30,
+            "speedOfMove": 25,
+            "intervalOfAttack": 1,
+            "aggressivity": 10,
+            "rangeOfAttack": 15,
+            "rangeOfInvestigate": 50,
+            "intervalOfThink": 1,
+            "price": 10
+        }
+    ],
+    "dataOfTower": {
+        "arrowTower": [
+            {
+                "attack": 4,
+                "speedOfArrow": 180,
+                "shootRange": 150,
+                "speedOfShoot": 2,
+                "price": 50
+            }
+        ],
+        "artillery": [
+            {
+                "attack": 6,
+                "speedOfBullet": 160,
+                "bombRange": 45,
+                "shootRange": 150,
+                "intervalOfShoot": 3,
+                "price": 50
+            }
+        ],
+        "barrack": [
+            {
+                "tOfCreateSoldier": 5,
+                "price": 50
+            }
+        ],
+        "magiclan": [
+            {
+                "attack": 8,
+                "speedOfShoot": 2,
+                "speedOfBullet": 100,
+                "shootRange": 140,
+                "price": 50
+            }
+        ]
+    },
+    "soldierData": [
+        {
+            "HP": 20,
+            "speedOfMove": 40,
+            "intervalOfAttack": 1,
+            "aggressivity": 5,
+            "rangeOfAttack": 15,
+            "rangeOfInvestigate": 60,
+            "intervalOfThink": 1
+        }
+    ],
+    "initChip": 200,
+    "initBlood": 4,
+    "rateOfSale": 0.7
+}

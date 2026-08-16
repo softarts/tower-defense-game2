@@ -1,7 +1,7 @@
 import { _decorator, Component, Node, EventTouch, Prefab, instantiate, resources, UIOpacity, Vec3, log, warn } from 'cc';
 import { KR001Builder } from './KR001Builder';
 import { CommonConstant } from './CommonConstant';
-import { KR001ArrowTower } from './KR001ArrowTower';
+import { KR001ArrowTower } from './arrowtower/KR001ArrowTower';
 import { KR001MagiclanTower } from './KR001MagiclanTower';
 import { KR001ArtilleryTower } from './KR001ArtilleryTower';
 

@@ -4,6 +4,7 @@ import {
 import { PathLoader } from './PathLoader';
 import { KR001EnemyController } from './KR001EnemyController';
 import { EnemyFactory } from './EnemyFactory';
+import { GameDataStorage } from './GameDataStorage';
 
 const { ccclass, property } = _decorator;
 
@@ -24,7 +25,7 @@ export class KR001EnemySpawner extends Component {
     spawnInterval: number = 2.0;
 
     @property({ tooltip: 'Enemy movement speed (units/second)' })
-    enemySpeed: number = 80;
+    enemySpeed: number = 25;
 
     @property({ tooltip: 'Maximum enemies to spawn (0 = unlimited)' })
     maxEnemies: number = 10;
@@ -46,6 +47,16 @@ export class KR001EnemySpawner extends Component {
                 EnemyFactory.preload()
             ]);
             this._path = path;
+
+            // Read enemy speed from GameDataStorage (loaded by KR001SceneSetup)
+            if (GameDataStorage.isLoaded()) {
+                const monsterData = GameDataStorage.getGameConfig().getMonsterData();
+                if (monsterData && monsterData[0]) {
+                    this.enemySpeed = monsterData[0].speedOfMove;
+                    log(`[KR001EnemySpawner] Monster0 speed from gameConfig: ${this.enemySpeed}`);
+                }
+            }
+
             this._isReady = true;
             this._timer = this.spawnInterval; // Spawn first enemy immediately
             log(`[KR001EnemySpawner] Ready. Path: ${this._path.length} waypoints, speed: ${this.enemySpeed}, interval: ${this.spawnInterval}s`);

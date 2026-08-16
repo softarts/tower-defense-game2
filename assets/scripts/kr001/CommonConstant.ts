@@ -31,6 +31,9 @@ export class CommonConstant {
 
     static readonly MAP_LEVEL1         = 'level1/map1/spriteFrame';
 
+    // Game config
+    static readonly GAME_CONFIG = 'gameConfig';
+
     /** 返回关卡配置路径: `level{N}/levelConfig` */
     static levelConfig(levelNum: number): string {
         return `level${levelNum}/levelConfig`;
@@ -65,18 +68,18 @@ export class CommonConstant {
 
     // Arrow Tower
     static readonly ARROW_SHOOT_RANGE = 150;
-    static readonly ARROW_BULLET_SPEED = 300;
-    static readonly ARROW_COOLDOWN = 1.0;
+    static readonly ARROW_BULLET_SPEED = 120;
+    static readonly ARROW_COOLDOWN = 1.5;
 
     // Magiclan Tower
     static readonly MAGICLAN_SHOOT_RANGE = 170;
-    static readonly MAGICLAN_BULLET_SPEED = 250;
-    static readonly MAGICLAN_COOLDOWN = 1.5;
+    static readonly MAGICLAN_BULLET_SPEED = 150;
+    static readonly MAGICLAN_COOLDOWN = 1.8;
 
     // Artillery Tower
     static readonly ARTILLERY_SHOOT_RANGE = 200;
-    static readonly ARTILLERY_BULLET_SPEED = 200;
-    static readonly ARTILLERY_COOLDOWN = 2.5;
+    static readonly ARTILLERY_BULLET_SPEED = 120;
+    static readonly ARTILLERY_COOLDOWN = 3.0;
 
     // ═══ Scene Node Names ════════════════════════════════
 

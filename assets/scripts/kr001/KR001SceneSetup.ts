@@ -3,6 +3,7 @@ import { LevelDataManager, LevelData } from './LevelDataManager';
 import { KR001BuildPoint } from './KR001BuildPoint';
 import { KR001Builder } from './KR001Builder';
 import { CommonConstant } from './CommonConstant';
+import { GameDataStorage } from './GameDataStorage';
 
 const { ccclass, property } = _decorator;
 
@@ -68,7 +69,16 @@ export class KR001SceneSetup extends Component {
      *   levelScene.start() -> buildScene() -> LevelDataManager.getLevelData() -> init()
      */
     private async loadLevelAndInit(): Promise<void> {
-        log(`[KR001SceneSetup] Loading level ${this._levelNum} data...`);
+        log(`[KR001SceneSetup] Loading game config and level ${this._levelNum} data...`);
+
+        try {
+            // Load global game config first (reference: GameDataStorage.init at game start)
+            await GameDataStorage.load();
+            log('[KR001SceneSetup] GameDataStorage loaded');
+        } catch (err) {
+            warn(`[KR001SceneSetup] Failed to load game config: ${err}`);
+            // Continue anyway — non-fatal, subsystems will use defaults
+        }
 
         try {
             this._levelData = await LevelDataManager.loadLevel(this._levelNum);

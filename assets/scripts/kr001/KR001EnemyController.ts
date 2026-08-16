@@ -20,7 +20,7 @@ export class KR001EnemyController extends Component {
 
     /** Movement speed in units per second */
     @property({ tooltip: 'Movement speed (units/second)' })
-    moveSpeed: number = 80;
+    moveSpeed: number = 25;
 
     /** Waypoints in node-local coordinates (Vec2, same space as parent node) */
     private _path: Vec2[] = [];
