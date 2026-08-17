@@ -17,9 +17,10 @@ manager.enabled = true;
 - 怪物 groupIndex=2 (Enemy group)
 - 编辑器中配置碰撞矩阵: group 1 ↔ group 2 可碰撞
 
-当前项目使用 **距离检测** 替代物理碰撞（更轻量）:
-- ArrowBullet 在 update() 中每帧检测与所有敌人的距离
-- 距离 ≤ HIT_RADIUS (15px) 时判定命中
+当前项目使用 **距离检测** 替代物理碰撞（更轻量高效）:
+- **单体远程子弹** (`ArrowBullet`, `MagiclanBullet`): 在 `update()` 中每帧检测与所有敌人的距离，距离 $\le \text{HIT\_RADIUS}$ (15px) 判定命中并单体扣血。
+- **AOE 范围子弹** (`ArtilleryBullet`): 飞行抵达终点后播放爆炸动画，动画结束时遍历所有存活敌人，检测距爆炸中心的距离 $\le \text{bombRange}$ (50px)，对范围内的所有敌人造成范围伤害。
+- **近战士兵** (`KR001Soldier`): 采用侦察范围 (`rangeOfInvestigate`) 与攻击范围 (`rangeOfAttack`) 双层距离检测，拦截并与敌人展开近身格斗。
 
 ### 伤害系统
 
@@ -43,7 +44,7 @@ ArrowBullet.checkHit()
 
 ## 文件结构
 
-### 箭塔攻击 (arrowtower/)
+### 箭塔攻击 (`arrowtower/`)
 
 ```
 arrowtower/
@@ -55,47 +56,97 @@ arrowtower/
 ### 法师塔 / 炮塔
 
 ```
-KR001MagiclanTower.ts    自身 update → 检测 → 射击法球
-KR001ArtilleryTower.ts   自身 update → 检测 → 射击炮弹
-MagiclanBullet.ts        法球/炮弹弧线飞行 → 到达销毁
+magiclantower/
+├── KR001MagiclanTower.ts 自身 update → 检测 → 射击直线法球
+└── MagiclanBullet.ts     直线飞行 → 单体命中检测 → 伤害
+
+artillerytower/
+├── KR001ArtilleryTower.ts 自身 update → 索敌 → 发射抛物线炮弹
+└── ArtilleryBullet.ts     二次贝塞尔抛物线飞行 → bom1~bom10爆炸帧动画 → AOE范围伤害
+```
+
+### 兵营与士兵系统 (`barracktower/`)
+
+```
+barracktower/
+├── KR001BarrackTower.ts   兵营生命周期管理：驻守点管理、即时出兵与阵亡补兵
+└── KR001Soldier.ts        士兵 AI：驻点巡逻、索敌追踪、交战拦截 (engage)、近战普攻、受伤死亡
 ```
 
 ### 敌人
 
 ```
-KR001EnemyController.ts  移动 + HP + 血条 + injure() + 死亡
+KR001EnemyController.ts   沿路径移动 + HP管理 + 血条更新 + 受击(injure) + 拦截状态(engage/disengage) + 死亡
 ```
 
 ---
 
-## 攻击流程（箭塔完整链路）
+## 士兵战斗系统实现详解 (Soldier Combat System)
 
+参考实现: `kingdomRush-gxh1996/assets/scripts/levelScene/tower/barrack/soldier.ts`
+
+### 1. 状态机与行为决策 (AI State Machine)
+
+`KR001Soldier.ts` 实现了完整的近战战斗决策循环，每帧按如下优先顺序进行状态转移：
+
+```mermaid
+stateDiagram-v2
+    [*] --> IdleAtStation: 初始化并走往驻点
+    IdleAtStation --> TrackEnemy: 侦察范围内发现敌人 (dist <= investigateRange)
+    TrackEnemy --> AttackEnemy: 接近至近战攻击范围 (dist <= attackRange)
+    AttackEnemy --> TrackEnemy: 目标脱离攻击范围或新目标出现
+    AttackEnemy --> ReturnStation: 目标死亡且无其他敌人
+    TrackEnemy --> ReturnStation: 敌人脱离侦察范围 / 全部死亡
+    ReturnStation --> IdleAtStation: 回到驻点 (dist < 2px)
+    
+    TrackEnemy --> Die: 受到致命伤害 (HP <= 0)
+    AttackEnemy --> Die: 受到致命伤害 (HP <= 0)
+    IdleAtStation --> Die: 受到致命伤害 (HP <= 0)
+    Die --> [*]: 释放驻点、通知兵营、渐隐销毁
 ```
-KR001ArrowTower.onLoad()
-    → resources.load(ArrowBullet prefab)
-    → initArrowers(): leftPerson/rightPerson 各 addComponent(KR001Arrower)
 
-KR001Arrower.update(dt)
-    → if (_shooting) return
-    → 遍历 EnemyRoot.children
-    → Vec3.distance(towerWorldPos, enemyWorldPos) <= shootRange
-    → shoot(enemyWorldPos)
+### 2. 核心战斗逻辑环节
 
-KR001Arrower.shoot(targetWorldPos)
-    → _shooting = true
-    → instantiate(ArrowBullet prefab)
-    → addComponent(ArrowBullet)
-    → bullet.launch(startWorldPos, targetWorldPos, speed, attack=4)
-    → scheduleOnce(() => _shooting = false, cooldown)
+#### A. 索敌机制 (Investigate)
+- **侦察半径**：`SOLDIER_INVESTIGATE_RANGE` (80px)。
+- 士兵在 `update()` 中遍历 `EnemyRoot` 下所有存活的敌人节点。
+- 筛选处于存活状态且未死亡的敌人，找到距离最近的敌人作为当前优先目标 `_currentTarget`。
 
-ArrowBullet.update(dt)
-    → 贝塞尔曲线插值移动
-    → checkHit(): 遍历敌人，距离 ≤ 15px → onHitEnemy()
+#### B. 追踪与朝向翻转 (Track & Orientation)
+- 当 `attackRange < distance <= investigateRange` 时，士兵进入追踪状态。
+- 计算朝向目标的方向向量并按移动速度 `SOLDIER_SPEED` (40 px/s) 更新本地坐标。
+- **精灵翻转**：若目标位于士兵左侧（`dx < 0`），设置 `scale.x = -1`；位于右侧（`dx > 0`）设置 `scale.x = 1`。
 
-ArrowBullet.onHitEnemy(enemyNode)
-    → enemy.getComponent(KR001EnemyController).injure(attack)
-    → this.node.destroy()
-```
+#### C. 拦截交战机制 (Melee Engage & Block)
+- 当距离进入攻击范围 `SOLDIER_ATTACK_RANGE` (18px) 时触发近战。
+- **阻挡敌人前行**：士兵调用 `enemyController.engage()`，使敌人暂停沿地图路径行进，锁定在原地与士兵发生肉搏。
+- **攻击前摇与冷却**：
+  - 触发攻击后立即进入冷却（`_canAttack = false`，冷却间隔 `SOLDIER_ATTACK_INTERVAL = 1.0s`）。
+  - 延时 0.3s（模拟挥刀前摇）后，对敌人造成伤害：`enemyController.injure(SOLDIER_ATTACK_DAMAGE)` (5点伤害)。
+- **脱离阻挡**：当士兵阵亡或目标切换时，调用 `enemyController.disengage()`，敌人恢复沿路线继续移动。
+
+#### D. 非战斗状态回驻 (Non-Combat Return)
+- 当侦察范围内无有效敌人时，士兵自主进入 `nonComLogic`。
+- 计算当前位置与最初分配的驻守点坐标 `_stationPos` 的距离。
+- 若尚未抵达驻点（`dist >= 2px`），平滑向驻点移动并在到达后待命。
+
+#### E. 受击、阵亡与兵营回收 (Death & Recycle)
+- 受到敌人伤害时执行 `injure(damage)`，扣减当前生命值 `_currentHP`。
+- 若生命值归零触发 `die()`：
+  - 立即解除与当前敌人的交战阻挡（`disengage`）。
+  - 执行 0.5s 渐隐透明度动画（`tween UIOpacity`）。
+  - 动画结束后调用 `barrack.releaseSoldier(this)`，通知兵营归还驻点并重新进入 5.0 秒补兵倒计时。
+
+---
+
+## 攻击流程与时序对比
+
+| 塔类型 | 攻击触发 | 弹道/移动轨迹 | 命中/生效方式 | 伤害类型 |
+|--------|----------|---------------|---------------|----------|
+| **ArrowTower** (箭塔) | 射程内最近敌人 | 二次贝塞尔曲线 + 飞行旋转翻转 | 飞行途中实时距离判定（$\le 15\text{px}$） | 单体 4 点 |
+| **MagiclanTower** (法师塔) | 射程内最近敌人 | 直线飞行 | 飞行途中实时距离判定（$\le 15\text{px}$） | 单体 8 点 |
+| **ArtilleryTower** (炮塔) | 射程内首个敌人 | 二次贝塞尔高抛抛物线 | 飞抵终点后播放 10 帧爆炸动画，播完后范围伤害 | AOE 范围 6 点 (半径 50px) |
+| **BarrackTower** (兵营) | 4名士兵自主索敌 | 沿地面步行追踪 | 近身距离判定（$\le 18\text{px}$）并拦截敌人行进 | 近战 5 点 / 秒 |
 
 ---
 
@@ -106,7 +157,7 @@ KR001EnemyController.injure(damage)
     → _currentHP -= damage
     → if HP < 0 → HP = 0
     → bloodBar.active = true (首次受击显示)
-    → refreshBloodBar(): bloodBar.progress = HP / maxHP
+    → refreshBloodBar(): hpBar.width = fullWidth * (HP / maxHP)
     → if HP <= 0 → die()
 
 KR001EnemyController.die()
@@ -115,165 +166,22 @@ KR001EnemyController.die()
     → UIOpacity fadeOut 0.5s → destroy
 ```
 
-对比参考项目:
-```
-creature.injure(v)
-    → cHP -= v; if cHP < 0 → cHP = 0
-
-monster.refreshState() (每帧调用)
-    → refreshBloodBar(): bloodBar.progress = cHP / maxHp
-    → if cHP === 0 → die(monstersOfAlive, this) → playDie → releaseSelf
-```
-
 ---
 
-## 血条 (ProgressBar)
+## 战斗与数值参数表
 
-### 参考项目结构
-```
-monster (root)
-├── bg (怪物图片)
-└── bloodBar (ProgressBar, 20x2, Sliced sprite)
-    └── bar (fill sprite, anchor 0,0.5)
-```
+### 防御设施与单位参数
 
-### 当前项目结构
-```
-KR001Enemy (root)
-├── Visual (怪物图片)
-└── bloodBar (ProgressBar + Sprite, 20x4, green, pos 0,20)
-```
+| 单位 | 攻击力 | 攻击间隔 | 射程/侦察范围 | 飞行/移动速度 | 伤害范围 |
+|------|--------|----------|---------------|---------------|----------|
+| **ArrowTower** (箭塔) | 4 | 1.5s (双弓箭手) | 150 px | 120 px/s | 单体 |
+| **MagiclanTower** (法师塔) | 8 | 1.8s | 170 px | 150 px/s | 单体 |
+| **ArtilleryTower** (炮塔) | 6 | 3.0s | 180 px | 80 px/s | AOE (半径 50px) |
+| **Soldier** (士兵) | 5 | 1.0s | 80 px (侦察) / 18 px (近战) | 40 px/s | 近战单体 (生命 20) |
 
-- 初始隐藏 (active=false)
-- 首次受击时显示
-- progress = currentHP / maxHP
-- totalLength = 20
+### 敌人属性配置 (`gameConfig.json`)
 
----
-
-## 攻击参数
-
-| 参数 | 箭塔 | 法师塔 | 炮塔 |
-|------|------|--------|------|
-| shootRange | 150 | 170 | 200 |
-| bulletSpeed | 120 | 150 | 120 |
-| cooldown | 1.5s | 1.8s | 3.0s |
-| attack | 4 | 8 | 6 |
-
-### 敌人属性 (monster0)
-- HP: 30
-- speedOfMove: 25
-
-### 计算
-- 箭塔每 1.5s × 2 箭 = 每秒 8 伤害
-- monster0 (HP=30) 需约 3.75s 击杀
-
----
-
-## ArrowBullet 飞行详解
-
-```
-launch(startWorld, endWorld, speed, attack)
-    → 世界坐标 → 父本地坐标
-    → controlPoint = (midX, endY + 60)
-    → duration = distance / speed
-
-update(dt):
-    → t = elapsed / duration
-    → B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2  (二次贝塞尔)
-    → node.setPosition(本地坐标)
-    → checkHit(): 距离检测
-
-doUpdateDir() (每 0.07s):
-    → 方向向量 → getDegree → rotation = -(180 + degree)
-    → Cocos 3.x: eulerAngles.z = -rotation2x
-
-命中判定:
-    → 每帧遍历 EnemyRoot.children
-    → Vec3.distance(arrowWorldPos, enemyWorldPos) <= 15px
-    → 命中: injure + destroy
-    → 未命中到达终点: fadeOut + destroy
-```
-
----
-
-## 启用碰撞/物理
-
-```typescript
-// KR001SceneSetup.ts start()
-PhysicsSystem2D.instance.enable = true;
-```
-
-注意: 当前实际使用距离检测而非物理碰撞，PhysicsSystem2D 启用是为后续扩展准备。
-
-
----
-
-## 附录：Cocos Creator 3.x 2D 碰撞系统简介
-
-### 使用方式
-
-Cocos 3.x 的 2D 碰撞检测基于 Box2D 物理引擎：
-
-```typescript
-// 1. 启用物理系统
-PhysicsSystem2D.instance.enable = true;
-
-// 2. 两个参与碰撞的节点都需要添加：
-//    - RigidBody2D (type: Static/Dynamic/Kinematic)
-//    - Collider2D (BoxCollider2D / CircleCollider2D / PolygonCollider2D)
-
-// 3. 在 Project Settings → Physics → Collision Matrix 中配置碰撞分组
-//    例如: "Bullet" 组 与 "Enemy" 组 勾选可碰撞
-
-// 4. 在脚本中注册碰撞回调
-import { Contact2DType, Collider2D, IPhysics2DContact } from 'cc';
-
-onLoad() {
-    const collider = this.getComponent(Collider2D);
-    if (collider) {
-        collider.on(Contact2DType.BEGIN_CONTACT, this.onBeginContact, this);
-    }
-}
-
-onBeginContact(selfCollider: Collider2D, otherCollider: Collider2D, contact: IPhysics2DContact) {
-    // 碰撞发生
-    const enemyNode = otherCollider.node;
-    // ...处理伤害
-}
-```
-
-### 需要的组件和配置
-
-| 节点 | 需要的组件 | 设置 |
-|------|-----------|------|
-| 箭矢 | RigidBody2D (type=Kinematic) + BoxCollider2D (sensor=true) | group="Bullet" |
-| 敌人 | RigidBody2D (type=Kinematic) + BoxCollider2D (sensor=true) | group="Enemy" |
-
-- `type=Kinematic`: 不受物理力影响，位置由代码控制（不会因重力掉落）
-- `sensor=true`: 只检测碰撞，不产生物理推力
-- 两个节点必须设置在不同的碰撞分组，且在 Collision Matrix 中勾选互相碰撞
-
-### 为什么当前项目不使用它
-
-| 问题 | 说明 |
-|------|------|
-| RigidBody2D 副作用 | 即使 type=Kinematic，物理系统仍然每帧模拟节点，当用 setPosition 移动节点时可能和物理状态冲突 |
-| 碰撞矩阵需要编辑器配置 | 需要在 Project Settings 手动添加分组并勾选，无法通过 MCP 或代码设置 |
-| prefab 需要额外组件 | 需要给每个子弹和每个敌人的 prefab 添加 RigidBody2D + Collider2D，增加复杂度 |
-| 贝塞尔手动插值冲突 | ArrowBullet 用 setPosition 做贝塞尔移动，Kinematic RigidBody 的 position 同步可能不及时 |
-| 调试困难 | 物理碰撞是异步的（在物理步进后触发），和渲染帧不完全同步 |
-| 当前需求简单 | 只有几个敌人，距离检测 O(n) 每帧毫无性能压力 |
-
-### 距离检测 vs 物理碰撞对比
-
-| 维度 | 距离检测 (当前方案) | 物理碰撞 (Cocos 3.x) |
-|------|-------------------|---------------------|
-| 依赖 | 无，纯数学 | PhysicsSystem2D + Box2D |
-| 配置 | 零配置 | 碰撞分组矩阵 + 多个组件 |
-| 精度 | 圆形范围 (HIT_RADIUS) | 精确形状匹配 (Box/Circle) |
-| 性能 | O(子弹数 × 敌人数) 每帧 | O(1) 由物理引擎空间索引优化 |
-| 适用场景 | 敌人少 (<50) | 大量物体需要碰撞 |
-| 调试 | log 即可 | 需要开 debugDraw |
-
-**结论：** 当前阶段用距离检测完全满足需求，且避免了物理引擎带来的配置复杂度和潜在的位置同步问题。未来如果敌人数量大幅增加（>100），可以切换到物理碰撞方案。
+| 怪物编号 | 名称 | 生命值 (HP) | 移动速度 | 攻击力 | 攻击间隔 | 击杀奖励 (金币) |
+|----------|------|-------------|----------|--------|----------|-----------------|
+| **monster0** | 哥布林 / 杂兵 | 10 | 25 px/s | 10 | 1.0s | 10 |
+| **monster1** | 兽人 / 进阶怪物 | 20 | 30 px/s | 12 | 1.0s | 15 |
