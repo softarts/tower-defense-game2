@@ -11,6 +11,17 @@
             "rangeOfInvestigate": 50,
             "intervalOfThink": 1,
             "price": 10
+        },
+        {
+            "no": 1,
+            "HP": 20,
+            "speedOfMove": 30,
+            "intervalOfAttack": 1,
+            "aggressivity": 12,
+            "rangeOfAttack": 15,
+            "rangeOfInvestigate": 50,
+            "intervalOfThink": 1,
+            "price": 15
         }
     ],
     "dataOfTower": {
@@ -26,9 +37,9 @@
         "artillery": [
             {
                 "attack": 6,
-                "speedOfBullet": 160,
-                "bombRange": 45,
-                "shootRange": 150,
+                "speedOfBullet": 60,
+                "bombRange": 35,
+                "shootRange": 35,
                 "intervalOfShoot": 3,
                 "price": 50
             }

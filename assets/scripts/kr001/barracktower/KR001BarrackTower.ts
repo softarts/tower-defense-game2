@@ -82,6 +82,19 @@ export class KR001BarrackTower extends Component {
         for (let i = 0; i < this._maxSoldiers; i++) {
             this._availableStations.push(i);
         }
+
+        // Spawn all soldiers immediately on barrack creation (no delay).
+        // Reference: barrack.ts creates soldier pool immediately, soldiers
+        // appear at outSoldierPos right away (no initial cooldown).
+        // We wait one frame for soldierPrefab to be loaded, then batch-spawn.
+        this.scheduleOnce(() => {
+            const count = this._maxSoldiers;
+            for (let i = 0; i < count; i++) {
+                if (this._soldierPrefab) {
+                    this.spawnSoldier();
+                }
+            }
+        }, 0.1);
     }
 
     /**

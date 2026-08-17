@@ -44,7 +44,7 @@ export class KR001EnemyController extends Component {
      * Initialize enemy with path and speed.
      * Also reads HP from GameDataStorage if available.
      */
-    public init(path: Vec2[], speed?: number): void {
+    public init(path: Vec2[], speed?: number, monsterIndex: number = 0): void {
         if (!path || path.length < 2) {
             log('[KR001EnemyController] Invalid path');
             return;
@@ -59,8 +59,8 @@ export class KR001EnemyController extends Component {
         // Read HP from gameConfig (reference: monster.ts init → md.HP)
         if (GameDataStorage.isLoaded()) {
             const md = GameDataStorage.getGameConfig().getMonsterData();
-            if (md && md[0]) {
-                this._maxHP = md[0].HP;
+            if (md && md[monsterIndex]) {
+                this._maxHP = md[monsterIndex].HP;
             }
         }
         this._currentHP = this._maxHP;

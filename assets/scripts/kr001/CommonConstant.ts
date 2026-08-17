@@ -9,6 +9,8 @@ export class CommonConstant {
     static readonly PREFAB_BUILD_POINT = 'prefabs/builder/KR001BuildPoint';
     static readonly PREFAB_BUILDER     = 'prefabs/builder/KR001Builder';
     static readonly PREFAB_ENEMY       = 'prefabs/enemy/KR001Enemy';
+    static readonly PREFAB_ENEMY_0     = 'prefabs/enemy/KR001Enemy';
+    static readonly PREFAB_ENEMY_1     = 'prefabs/enemy/monster1';
 
     // Tower prefabs
     static readonly PREFAB_TOWER_ARROW     = 'prefabs/tower/ArrowTower';
@@ -79,8 +81,9 @@ export class CommonConstant {
     static readonly MAGICLAN_ATTACK = 8;
 
     // Artillery Tower
-    static readonly ARTILLERY_SHOOT_RANGE = 200;
-    static readonly ARTILLERY_BULLET_SPEED = 120;
+    // Reference: gameConfig.json speedOfBullet=160, shootRange=150, bombRange=45, intervalOfShoot=3
+    static readonly ARTILLERY_SHOOT_RANGE = 180;
+    static readonly ARTILLERY_BULLET_SPEED = 80;  // slower arc for visual clarity
     static readonly ARTILLERY_COOLDOWN = 3.0;
     static readonly ARTILLERY_ATTACK = 6;
     static readonly ARTILLERY_BOMB_RANGE = 50;
@@ -91,8 +94,10 @@ export class CommonConstant {
 
     // ═══ Barrack Tower ══════════════════════════════════════
 
-    static readonly BARRACK_MAX_SOLDIERS = 3;
-    static readonly BARRACK_SPAWN_COOLDOWN = 3.0;
+    /** Reference: barrack.ts maxNumOfSoldier=3, but user wants 4 */
+    static readonly BARRACK_MAX_SOLDIERS = 4;
+    /** Cooldown only used for respawning dead soldiers, not initial spawn */
+    static readonly BARRACK_SPAWN_COOLDOWN = 5.0;
 
     // ═══ Soldier ════════════════════════════════════════════
 
